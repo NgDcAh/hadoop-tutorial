@@ -4,7 +4,6 @@ services:
   namenode:
     image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
     container_name: namenode
-    restart: always
     ports:
       - 9870:9870
       - 9000:9000
@@ -18,18 +17,41 @@ services:
   datanode:
     image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
     container_name: datanode
-    restart: always
     volumes:
       - hadoop_datanode:/hadoop/dfs/data
     environment:
       SERVICE_PRECONDITION: "namenode:9870"
     env_file:
       - ./hadoop.env
-  
+
+  pig:
+    build:
+      context: ./pig
+    container_name: pig
+    depends_on:
+      - namenode
+    volumes:
+      - ./pig_example:/scripts
+      - ./hadoop-conf:/opt/hadoop/conf:ro
+      - ./lib/jersey-client-1.9.jar:/opt/pig/lib/jersey-client-1.9.jar
+      - ./lib/jersey-core-1.9.jar:/opt/pig/lib/jersey-core-1.9.jar
+      - ./lib/jersey-json-1.9.jar:/opt/pig/lib/jersey-json-1.9.jar
+      - ./lib/joda-time-2.10.10.jar:/opt/pig/lib/joda-time-2.10.10.jar
+      - ./lib/jackson-jaxrs-1.9.13.jar:/opt/pig/lib/jackson-jaxrs-1.9.13.jar
+      - ./lib/jackson-core-asl-1.9.13.jar:/opt/pig/lib/jackson-core-asl-1.9.13.jar
+      - ./lib/jackson-mapper-asl-1.9.13.jar:/opt/pig/lib/jackson-mapper-asl-1.9.13.jar
+      - ./lib/jackson-xc-1.9.13.jar:/opt/pig/lib/jackson-xc-1.9.13.jar
+    environment:
+      - HADOOP_CONF_DIR=/opt/hadoop/conf
+      - PIG_OPTS=-Dpig.ats.logging=false
+      - MAPRED_CONF_mapreduce_jobhistory_address=historyserver:10020
+    entrypoint: ["tail", "-f", "/dev/null"]
+
   resourcemanager:
     image: bde2020/hadoop-resourcemanager:2.0.0-hadoop3.2.1-java8
     container_name: resourcemanager
-    restart: always
+    depends_on:
+      - namenode
     environment:
       SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864"
     env_file:
@@ -38,7 +60,6 @@ services:
   nodemanager1:
     image: bde2020/hadoop-nodemanager:2.0.0-hadoop3.2.1-java8
     container_name: nodemanager
-    restart: always
     environment:
       SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
     env_file:
@@ -47,7 +68,6 @@ services:
   historyserver:
     image: bde2020/hadoop-historyserver:2.0.0-hadoop3.2.1-java8
     container_name: historyserver
-    restart: always
     environment:
       SERVICE_PRECONDITION: "namenode:9000 namenode:9870 datanode:9864 resourcemanager:8088"
     volumes:
