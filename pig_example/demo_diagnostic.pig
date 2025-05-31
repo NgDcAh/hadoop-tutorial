@@ -1,5 +1,5 @@
 -- Đọc file CSV, chỉ định schema
-employees = LOAD '/user/root/input/employees.txt'
+employees = LOAD '/user/root/input/employee.txt'
   USING PigStorage(',')
   AS (id:int, name:chararray, department:chararray, salary:int);
 
